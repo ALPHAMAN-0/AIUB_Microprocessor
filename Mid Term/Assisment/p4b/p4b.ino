@@ -1,30 +1,44 @@
-// Problem 4(b): PCINT on PD6 & PD7 (push buttons) toggle LEDs on PD2 & PD3
-volatile byte lastPINDstate = 0;
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
+volatile bool timerLed  = false;   // LED on D3 (Timer1)
+volatile bool buttonLed = false;   // LEDs on D10 + D11 (INT0)
 
 void setup() {
-  DDRD &= ~((1 << DDD6) | (1 << DDD7));   // Pin6, Pin7 = inputs
-  PORTD |= (1 << PORTD6) | (1 << PORTD7); // enable internal pull-ups
-  DDRD  |= (1 << DDD2) | (1 << DDD3);     // Pin2, Pin3 = outputs (LEDs)
+  pinMode(3, OUTPUT);
+  pinMode(10, OUTPUT);
+  pinMode(11, OUTPUT);
+  pinMode(2, INPUT_PULLUP);
 
-  lastPINDstate = PIND;
-  PCICR  |= (1 << PCIE2);                 // enable PCINT[23:16] group (PORTD)
-  PCMSK2 |= (1 << PCINT22) | (1 << PCINT23); // unmask PD6 (PCINT22), PD7 (PCINT23)
+  cli();
+
+  // Timer1: CTC, prescaler 1024, toggle every 542 ms
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1  = 0;
+  OCR1A  = 8468;
+  TCCR1B |= (1 << WGM12);
+  TCCR1B |= (1 << CS12) | (1 << CS10);
+  TIMSK1 |= (1 << OCIE1A);
+
+  // INT0: falling edge on D2
+  EICRA |=  (1 << ISC01);
+  EICRA &= ~(1 << ISC00);
+  EIMSK |=  (1 << INT0);
+
   sei();
 }
 
-ISR(PCINT2_vect) {
-  byte now = PIND;
-  byte changed = now ^ lastPINDstate;   // bits that flipped since last time
+ISR(TIMER1_COMPA_vect) {
+  timerLed = !timerLed;
+  digitalWrite(3, timerLed);
+}
 
-  if (changed & (1 << PORTD6)) {         // PD6 (Pin 6) changed
-    PORTD ^= (1 << PORTD2);              // toggle LED on Pin 2
-  }
-  if (changed & (1 << PORTD7)) {         // PD7 (Pin 7) changed
-    PORTD ^= (1 << PORTD3);              // toggle LED on Pin 3
-  }
-  lastPINDstate = now;
+ISR(INT0_vect) {
+  buttonLed = !buttonLed;
+  digitalWrite(10, buttonLed);
+  digitalWrite(11, buttonLed);
 }
 
 void loop() {
-  // idle - everything is handled in the PCINT2 ISR
 }
