@@ -3,10 +3,11 @@
 ## Architecture / How it Works
 
 ```mermaid
-flowchart LR
-    A[User] --> B[Aiub Microprocessor]
-    B --> C{Logic}
-    C --> D[(Data)]
-    C --> E[Output]
-    D --> C
+flowchart TD
+  MT["Mid Term"] --> A["Assisment"]
+  MT --> L1["Lab Task 1"]
+  MT --> L2["Lab Task 2"]
+  MT --> L3["Lab Task 3"]
+  MT --> L4["Lab Task 4"]
+  MT --> S["Slids"]
 ```
